@@ -143,7 +143,7 @@ class RasterSourceProperties implements SourceProperties {
   /// `https:`, and `mapbox://<Tileset ID>`.
   ///
   /// Type: string
-  final String? url;
+  final String url;
 
   /// An array of one or more tile source URLs, as in the TileJSON spec.
   ///
@@ -200,8 +200,19 @@ class RasterSourceProperties implements SourceProperties {
   /// Type: string
   final String? attribution;
 
-  const RasterSourceProperties({
-    this.url,
+  /// WMS image format (use 'image/png' for layers with transparency)
+  final String format;
+
+  /// Whether to make tiles transparent
+  final bool transparent;
+
+  /// List of WMS styles
+  final List<String> styles;
+
+   late final String _encodedBaseUrl;
+
+   RasterSourceProperties({
+    this.url='',
     this.tiles,
     this.bounds = const [-180, -85.051129, 180, 85.051129],
     this.minzoom = 0,
@@ -209,7 +220,33 @@ class RasterSourceProperties implements SourceProperties {
     this.tileSize = 512,
     this.scheme = "xyz",
     this.attribution,
-  });
+    this.format = 'image/png',
+     this.transparent=true,
+     this.styles = const [],
+  }) {
+    _encodedBaseUrl = _buildEncodedBaseUrl();
+  }
+
+  /// add bbox to the end of url
+  String _buildEncodedBaseUrl() {
+    final buffer = StringBuffer(url)
+      ..write('&styles=${styles.map(Uri.encodeComponent).join(',')}')
+      ..write('&format=${Uri.encodeComponent(format)}')
+      ..write(
+          '&transparent=$transparent');
+    return buffer.toString();
+  }
+
+  /// get the last url
+  String getUrl(int tileSize,dynamic bounds) {
+    final bbox = [bounds.min.x, bounds.min.y, bounds.max.x, bounds.max.y];
+
+    final buffer = StringBuffer(_encodedBaseUrl);
+    buffer.write('&width=${tileSize}');
+    buffer.write('&height=${tileSize}');
+    buffer.write('&bbox=${bbox.join(',')}');
+    return buffer.toString();
+  }
 
   RasterSourceProperties copyWith(
     String? url,
